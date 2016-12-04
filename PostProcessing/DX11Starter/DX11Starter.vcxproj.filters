@@ -94,9 +94,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <FxCompile Include="Assets\VShaders\VertexShader.hlsl">
       <Filter>Shaders\Vertex Shaders</Filter>
     </FxCompile>
@@ -133,5 +130,8 @@
     <FxCompile Include="vsBloom.hlsl">
       <Filter>Shaders\Vertex Shaders</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

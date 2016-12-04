@@ -86,7 +86,7 @@ void Game::Init()
 	//make mat 7 do stuff for skybox
 	//will never use bricks.png or bricksnormalmap.png
 	Material* normalMap = cmanager->LoadMaterial("skyMap", "sampler", "SkyVS.cso", "SkyPS.cso", "SunnyCubeMap.dds", "null");
-	Material* mat2 = cmanager->LoadMaterial("Blur", "sampler", "vsBloom.cso", "psBloom.cso");
+	//Material* mat2 = cmanager->LoadMaterial("Blur", "sampler", "vsBloom.cso", "psBloom.cso");
 
 	entities = {
 		new Entity(context, cmanager->GetMesh("cube.obj"), mat1, { 0.5, 0.5, 0 }, 0),
@@ -126,15 +126,10 @@ void Game::Init()
 	textureDesc.SampleDesc.Quality = 0;
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
-	ID3D11Texture2D* texture;
-	device->CreateTexture2D(&textureDesc, 0, &texture);
-
 	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.Format = textureDesc.Format;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-
-	device->CreateRenderTargetView(texture, &rtvDesc, &ppRTV);
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = textureDesc.Format;
@@ -142,9 +137,20 @@ void Game::Init()
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 
-	device->CreateShaderResourceView(texture, &srvDesc, &ppSRV);
 
-	texture->Release();
+	ID3D11Texture2D* initialRender;
+	ID3D11Texture2D* brightPixels;
+	device->CreateTexture2D(&textureDesc, 0, &initialRender);
+	device->CreateTexture2D(&textureDesc, 0, &brightPixels);
+
+	device->CreateRenderTargetView(initialRender, &rtvDesc, &ppRTV);
+	device->CreateRenderTargetView(brightPixels, &rtvDesc, &ppRTV);
+
+	device->CreateShaderResourceView(initialRender, &srvDesc, &ppSRV);
+	device->CreateShaderResourceView(brightPixels, &srvDesc, &ppSRV);
+
+	initialRender->Release();
+	brightPixels->Release();
 
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
