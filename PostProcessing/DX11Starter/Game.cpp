@@ -84,7 +84,7 @@ void Game::Init()
 	cmanager->Init(device, context);
 	Material* brick = cmanager->LoadMaterialWithNormalMap("brickLightingNormalMap", "sampler", "vsLighting.cso", "psLighting.cso", "bricks.png", "bricksNM.png");
 	Material* skybox = cmanager->LoadCubeMapMaterial("skyMap", "sampler", "SkyVS.cso", "SkyPS.cso", "SunnyCubeMap.dds");
-	Material* bloom = cmanager->LoadPostProcessingMaterial("Blur", "sampler", "vsBloom.cso", "psBloom.cso");
+	Material* bloom = cmanager->LoadPostProcessingMaterial("Blur", "sampler", "vsBlur.cso", "psBlur.cso");
 
 	entities = {
 		new Entity(context, cmanager->GetMesh("cube.obj"), brick, { 0.5, 0.5, 0 }, 0),
@@ -141,11 +141,11 @@ void Game::Init()
 	device->CreateTexture2D(&textureDesc, 0, &initialRender);
 	device->CreateTexture2D(&textureDesc, 0, &brightPixels);
 
-	device->CreateRenderTargetView(initialRender, &rtvDesc, &ppRTV);
-	device->CreateRenderTargetView(brightPixels, &rtvDesc, &ppRTV);
+	device->CreateRenderTargetView(initialRender, &rtvDesc, &irRTV);
+	device->CreateRenderTargetView(brightPixels, &rtvDesc, &bpRTV);
 
-	device->CreateShaderResourceView(initialRender, &srvDesc, &ppSRV);
-	device->CreateShaderResourceView(brightPixels, &srvDesc, &ppSRV);
+	device->CreateShaderResourceView(initialRender, &srvDesc, &irSRV);
+	device->CreateShaderResourceView(brightPixels, &srvDesc, &bpSRV);
 
 	initialRender->Release();
 	brightPixels->Release();
@@ -198,7 +198,7 @@ void Game::Draw(float deltaTiame, float totalTime)
 	// Clear the render target and depth buffer (erases what's on the screen)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
-	context->ClearRenderTargetView(ppRTV, color);
+	context->ClearRenderTargetView(irRTV, color);
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView, 
@@ -206,7 +206,7 @@ void Game::Draw(float deltaTiame, float totalTime)
 		1.0f,
 		0);
 
-	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
+	context->OMSetRenderTargets(1, &irRTV, depthStencilView);
 
 	//// Send data to shader variables
 	////  - Do this ONCE PER OBJECT you're drawing
@@ -271,7 +271,33 @@ void Game::Draw(float deltaTiame, float totalTime)
 	context->OMSetDepthStencilState(0, 0);
 
 	//Post Processing
-	//s
+	context->OMSetRenderTargets(1, &backBufferRTV, 0);
+
+	//Set the Shaders
+	//Send data to the Shaders
+	//copy all the buffer data
+	Material* blurMat = cmanager->GetMaterial("Blur");
+	SimplePixelShader* blurPS = blurMat->getPShader();
+	
+	blurMat->getVShader()->SetShader();
+
+	blurPS->SetShader();
+	blurPS->SetShaderResourceView("InitialRender", irSRV);
+	blurPS->SetSamplerState("Sampler", sampler);
+	blurPS->SetInt("blurAmount", 9);
+	blurPS->SetFloat("pixelWidth", 1.0f / width);
+	blurPS->SetFloat("pixelHeight", 1.0f / height);
+	blurPS->CopyAllBufferData();
+	
+	//then draw
+	ID3D11Buffer* nothing = 0;
+	context->IASetVertexBuffers(0, 1, &nothing, &stride, &offset);
+	context->IASetIndexBuffer(0, DXGI_FORMAT_R32_UINT, 0);
+
+	////draw the triangle that encompasses the whole screen
+	context->Draw(3, 0);
+
+	blurPS->SetShaderResourceView("InitialRender", 0);
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it

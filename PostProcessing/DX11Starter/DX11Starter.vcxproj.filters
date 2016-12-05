@@ -94,24 +94,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Assets\VShaders\VertexShader.hlsl">
-      <Filter>Shaders\Vertex Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Assets\VShaders\vsPointLight.hlsl">
-      <Filter>Shaders\Vertex Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Assets\VShaders\vsSpotLight.hlsl">
-      <Filter>Shaders\Vertex Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Assets\PShaders\PixelShader.hlsl">
-      <Filter>Shaders\Pixel Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Assets\PShaders\psPointLight.hlsl">
-      <Filter>Shaders\Pixel Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Assets\PShaders\psSpotLight.hlsl">
-      <Filter>Shaders\Pixel Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="Assets\PShaders\psLighting.hlsl">
       <Filter>Shaders\Pixel Shaders</Filter>
     </FxCompile>
@@ -124,10 +106,22 @@
     <FxCompile Include="Assets\VShaders\SkyVS.hlsl">
       <Filter>Shaders\Vertex Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="psBloom.hlsl">
+    <FxCompile Include="Assets\PShaders\psBlur.hlsl">
       <Filter>Shaders\Pixel Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="vsBloom.hlsl">
+    <FxCompile Include="Assets\VShaders\vsBlur.hlsl">
+      <Filter>Shaders\Vertex Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Assets\VShaders\vsBrightPixels.hlsl">
+      <Filter>Shaders\Vertex Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Assets\PShaders\psBrightPixels.hlsl">
+      <Filter>Shaders\Pixel Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Assets\PShaders\psBloom.hlsl">
+      <Filter>Shaders\Pixel Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Assets\VShaders\vsBloom.hlsl">
       <Filter>Shaders\Vertex Shaders</Filter>
     </FxCompile>
   </ItemGroup>

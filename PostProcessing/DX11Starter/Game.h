@@ -46,8 +46,13 @@ private:
 	ID3D11DepthStencilState* skyDepthState;
 
 	// Post process requirements
-	ID3D11RenderTargetView* ppRTV;		// Allows us to render to a texture
-	ID3D11ShaderResourceView* ppSRV;	// Allows us to sample from the same texture
+	//initial render
+	ID3D11RenderTargetView* irRTV;		// Allows us to render to a texture
+	ID3D11ShaderResourceView* irSRV;	// Allows us to sample from the same texture
+
+	//bright pixels
+	ID3D11RenderTargetView* bpRTV;		// Allows us to render to a texture
+	ID3D11ShaderResourceView* bpSRV;	// Allows us to sample from the same texture
 
 	ContentManager* cmanager;
 	std::vector<Entity*>  entities;
