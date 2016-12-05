@@ -27,7 +27,9 @@ public:
 
 	void Init(ID3D11Device* device, ID3D11DeviceContext* context);
 
-	Material* LoadMaterial(std::string name, std::string samplerName, std::string vs, std::string ps, std::string textureName, std::string normalMapName);
+	Material* LoadMaterialWithNormalMap(std::string name, std::string samplerName, std::string vs, std::string ps, std::string textureName, std::string normalMapName);
+	Material* LoadCubeMapMaterial(std::string name, std::string samplerName, std::string vs, std::string ps, std::string textureName);
+	Material* LoadPostProcessingMaterial(std::string name, std::string samplerName, std::string vs, std::string ps);
 	Mesh* GetMesh(std::string);
 	Material* GetMaterial(std::string);
 
@@ -49,7 +51,6 @@ private:
 	ID3D11DeviceContext*	m_context;		//Pointer to the D3D11 Device Context
 
 	//Calculate the Tangents
-	void CalculateTangents(Vertex& v1, Vertex& v2, Vertex& v3);
 	void CalculateTangents(Vertex* verts, int numVerts, unsigned int* indices, int numIndices);
 	//Creates a mesh of the passed in .obj file and save it into a std::map  
 	void CreateMesh(std::string objFile);

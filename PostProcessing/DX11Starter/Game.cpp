@@ -82,18 +82,16 @@ void Game::Init()
 
 	cmanager = new ContentManager();
 	cmanager->Init(device, context);
-	Material* mat1 = cmanager->LoadMaterial("brickLightingNormalMap", "sampler", "vsLighting.cso", "psLighting.cso", "bricks.png", "bricksNM.png");
-	//make mat 7 do stuff for skybox
-	//will never use bricks.png or bricksnormalmap.png
-	Material* normalMap = cmanager->LoadMaterial("skyMap", "sampler", "SkyVS.cso", "SkyPS.cso", "SunnyCubeMap.dds", "null");
-	//Material* mat2 = cmanager->LoadMaterial("Blur", "sampler", "vsBloom.cso", "psBloom.cso");
+	Material* brick = cmanager->LoadMaterialWithNormalMap("brickLightingNormalMap", "sampler", "vsLighting.cso", "psLighting.cso", "bricks.png", "bricksNM.png");
+	Material* skybox = cmanager->LoadCubeMapMaterial("skyMap", "sampler", "SkyVS.cso", "SkyPS.cso", "SunnyCubeMap.dds");
+	Material* bloom = cmanager->LoadPostProcessingMaterial("Blur", "sampler", "vsBloom.cso", "psBloom.cso");
 
 	entities = {
-		new Entity(context, cmanager->GetMesh("cube.obj"), mat1, { 0.5, 0.5, 0 }, 0),
-		new Entity(context, cmanager->GetMesh("cone.obj"), mat1, { 0, 0, 0 }, 0),
-		new Entity(context, cmanager->GetMesh("helix.obj"), mat1, { -1.0f, 0, 0 }, 0),
-		new Entity(context, cmanager->GetMesh("cube.obj"), mat1, { 0.0f, -0.5f, 0 }, 0),
-		new Entity(context, cmanager->GetMesh("torus.obj"), mat1, { 1.0f, -1.0f, 0 }, 0) };
+		new Entity(context, cmanager->GetMesh("cube.obj"), brick, { 0.5, 0.5, 0 }, 0),
+		new Entity(context, cmanager->GetMesh("cone.obj"), brick, { 0, 0, 0 }, 0),
+		new Entity(context, cmanager->GetMesh("helix.obj"), brick, { -1.0f, 0, 0 }, 0),
+		new Entity(context, cmanager->GetMesh("cube.obj"), brick, { 0.0f, -0.5f, 0 }, 0),
+		new Entity(context, cmanager->GetMesh("torus.obj"), brick, { 1.0f, -1.0f, 0 }, 0) };
 
 	camera->updateProjection(width, height);
 
@@ -200,6 +198,7 @@ void Game::Draw(float deltaTiame, float totalTime)
 	// Clear the render target and depth buffer (erases what's on the screen)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
+	context->ClearRenderTargetView(ppRTV, color);
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView, 
@@ -215,28 +214,27 @@ void Game::Draw(float deltaTiame, float totalTime)
 	////    and then copying that entire buffer to the GPU.  
 	////  - The "SimpleShader" class handles all of that for you.
 	
+	Entity* entity = entities[0];
+	Material* mat = entity->getMat();
+	ID3D11SamplerState* sampler = mat->getSampler();
+	ID3D11ShaderResourceView* shaderResView = mat->getShaderResView();
+	ID3D11ShaderResourceView* normalMap = mat->getNormalMap();
+	SimplePixelShader* ps = mat->getPShader();
+
+	mat->getVShader()->SetMatrix4x4("view", camera->getViewMatrix());
+	mat->getVShader()->SetMatrix4x4("projection", camera->getProjectionMatrix());
+	ps->SetData("lights", &lights, sizeof(Lights));
+	ps->SetSamplerState("Sampler", sampler);
+	ps->SetShaderResourceView("Texture", shaderResView);
+	ps->SetShaderResourceView("NormalMap", normalMap);
+
+	mat->ReleaseSampler();
+	mat->ReleaseShaderResView();
+	normalMap->Release();
+
 	for (int i = 0; i < entities.size(); i++)
 	{
-		Entity* entity = entities[i];
-		Material* mat = entity->getMat();
-		ID3D11SamplerState* sampler = mat->getSampler();
-		ID3D11ShaderResourceView* shaderResView = mat->getShaderResView();
-		ID3D11ShaderResourceView* normalMap = mat->getNormalMap();
-		SimplePixelShader* ps = mat->getPShader();
-
-		mat->getVShader()->SetMatrix4x4("view", camera->getViewMatrix());
-		mat->getVShader()->SetMatrix4x4("projection", camera->getProjectionMatrix());
-		ps->SetData("lights", &lights, sizeof(Lights));
-		ps->SetSamplerState("Sampler", sampler);
-		ps->SetShaderResourceView("Texture", shaderResView);
-		ps->SetShaderResourceView("NormalMap", normalMap);
-	
-		entity->draw();
-
-		//did this as a nice way to use the material
-		mat->ReleaseSampler();
-		mat->ReleaseShaderResView();
-		normalMap->Release();
+		entities[i]->draw();
 	}
 
 	UINT stride = sizeof(Vertex);

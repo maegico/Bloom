@@ -103,25 +103,42 @@ void ContentManager::Init(ID3D11Device * device, ID3D11DeviceContext * context)
 }
 
 //Should I hold a bunch of textures in CM or create on construction of a material
-Material* ContentManager::LoadMaterial(std::string name, std::string samplerName, std::string vs, std::string ps, std::string textureName, std::string normalMapName)
+Material* ContentManager::LoadMaterialWithNormalMap(std::string name, std::string samplerName, std::string vs, std::string ps, std::string textureName, std::string normalMapName)
 {
+	Material* mat;
 	SimpleVertexShader* vshader = m_vshaders[vs];
 	SimplePixelShader* pshader = m_pshaders[ps];
 	ID3D11SamplerState*  sampler = m_samplers[samplerName];
+	ID3D11ShaderResourceView* texture = m_textures[textureName];
+	ID3D11ShaderResourceView* normalMap = m_textures[normalMapName];
+
+	mat = new Material(vshader, pshader, texture, normalMap, sampler);
+	m_materials[name] = mat;
+	return mat;
+}
+
+Material * ContentManager::LoadCubeMapMaterial(std::string name, std::string samplerName, std::string vs, std::string ps, std::string textureName)
+{
 	Material* mat;
-	if (normalMapName != "null")
-	{
-		ID3D11ShaderResourceView* texture = m_textures[textureName];
-		ID3D11ShaderResourceView* normalMap = m_textures[normalMapName];
+	SimpleVertexShader* vshader = m_vshaders[vs];
+	SimplePixelShader* pshader = m_pshaders[ps];
+	ID3D11SamplerState*  sampler = m_samplers[samplerName];
+	ID3D11ShaderResourceView* texture = m_cubemaps[textureName];
 
-		mat = new Material(vshader, pshader, texture, normalMap, sampler);
-	}
-	else
-	{
-		ID3D11ShaderResourceView* texture = m_cubemaps[textureName];
+	mat = new Material(vshader, pshader, texture, nullptr, sampler);
+	m_materials[name] = mat;
 
-		mat = new Material(vshader, pshader, texture, nullptr, sampler);
-	}
+	return mat;
+}
+
+Material * ContentManager::LoadPostProcessingMaterial(std::string name, std::string samplerName, std::string vs, std::string ps)
+{
+	Material* mat;
+	SimpleVertexShader* vshader = m_vshaders[vs];
+	SimplePixelShader* pshader = m_pshaders[ps];
+	ID3D11SamplerState*  sampler = m_samplers[samplerName];
+
+	mat = new Material(vshader, pshader, nullptr, nullptr, sampler);
 	m_materials[name] = mat;
 	return mat;
 }
@@ -134,74 +151,6 @@ Mesh* ContentManager::GetMesh(std::string mesh)
 Material * ContentManager::GetMaterial(std::string name)
 {
 	return m_materials[name];
-}
-
-//will want to create the binormals here as well
-//took from Chris Cascioli's code
-void ContentManager::CalculateTangents(Vertex& v1, Vertex& v2, Vertex& v3)
-{
-	//calculate vectors in the plane of the face
-	float x1 = v2.Position.x - v1.Position.x;
-	float y1 = v2.Position.y - v1.Position.y;
-	float z1 = v2.Position.z - v1.Position.z;
-
-	float x2 = v3.Position.x - v1.Position.x;
-	float y2 = v3.Position.y - v1.Position.y;
-	float z2 = v3.Position.z - v1.Position.z;
-
-	//calculate vectors in the plane of the triangle uv's
-	float s1 = v2.UV.x - v1.UV.x;
-	float t1 = v2.UV.y - v1.UV.y;
-
-	float s2 = v3.UV.x - v1.UV.x;
-	float t2 = v3.UV.y - v1.UV.y;
-
-	//create vectors for tangent calculation
-	
-	//where does this come from ??????
-	float temp1 = s1 * t2;
-	float temp2 = s2 * t1;
-	float temp3 = temp1 - temp2;
-	float tempR = 1.0f / temp3;
-	float r = 1.0f / (s1 * t2 - s2 * t1);
-
-	float tx = (t2 * x1 - t1 * x2) * r;
-	float ty = (t2 * y1 - t1 * y2) * r;
-	float tz = (t2 * z1 - t1 * z2) * r;
-
-	v1.Tangent.x += tx;
-	v1.Tangent.y += ty;
-	v1.Tangent.z += tz;
-
-	v2.Tangent.x += tx;
-	v2.Tangent.y += ty;
-	v2.Tangent.z += tz;
-
-	v3.Tangent.x += tx;
-	v3.Tangent.y += ty;
-	v3.Tangent.z += tz;
-
-	//DirectX::XMVECTOR normal1 = DirectX::XMLoadFloat3(&v1.Normal);
-	//DirectX::XMVECTOR tangent1 = DirectX::XMLoadFloat3(&v1.Tangent);
-	//DirectX::XMVECTOR binormal1;
-
-	//DirectX::XMVECTOR normal2 = DirectX::XMLoadFloat3(&v2.Normal);
-	//DirectX::XMVECTOR tangent2 = DirectX::XMLoadFloat3(&v2.Tangent);
-	//DirectX::XMVECTOR binormal2;
-
-	//DirectX::XMVECTOR normal3 = DirectX::XMLoadFloat3(&v3.Normal);
-	//DirectX::XMVECTOR tangent3 = DirectX::XMLoadFloat3(&v3.Tangent);
-	//DirectX::XMVECTOR binormal3;
-
-	//tangent1 = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(tangent1, DirectX::XMVectorMultiply(normal1, DirectX::XMVector3Dot(normal1, tangent1))));
-	//tangent2 = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(tangent2, DirectX::XMVectorMultiply(normal2, DirectX::XMVector3Dot(normal2, tangent2))));
-	//tangent3 = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(tangent3, DirectX::XMVectorMultiply(normal3, DirectX::XMVector3Dot(normal3, tangent3))));
-
-	////binormal1 = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(normal1, tangent1));
-
-	//DirectX::XMStoreFloat3(&v1.Tangent, tangent1);
-	//DirectX::XMStoreFloat3(&v2.Tangent, tangent2);
-	//DirectX::XMStoreFloat3(&v3.Tangent, tangent3);
 }
 
 //took from Chris Cascioli's code
@@ -483,6 +432,7 @@ void ContentManager::CreateVShader(std::wstring shader)
 	releasePath = releasePath + compiledName;
 
 	std::wstring debugPath = L"Assets/VShaders/" + compiledName;
+	//std::wstring debugPath = compiledName;
 
 	//wchar_t begin[] = L"Debug/\0";
 	//size_t len = wcslen(shader);

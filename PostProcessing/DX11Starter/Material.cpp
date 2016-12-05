@@ -11,7 +11,8 @@ Material::Material()
 Material::Material(SimpleVertexShader* vertexShader, SimplePixelShader* pixelShader, ID3D11ShaderResourceView* shaderResView, ID3D11ShaderResourceView* normalMap, ID3D11SamplerState* sampler)
 	: vertexShader(vertexShader), pixelShader(pixelShader), shaderResView(shaderResView), normalMap(normalMap), sampler(sampler)//, shaderLists(nullptr)
 {
-	shaderResView->AddRef();
+	if(shaderResView != nullptr)
+		shaderResView->AddRef();
 	if(normalMap != nullptr)
 		normalMap->AddRef();
 	sampler->AddRef();
@@ -19,7 +20,8 @@ Material::Material(SimpleVertexShader* vertexShader, SimplePixelShader* pixelSha
 
 Material::~Material()
 {
-	shaderResView->Release();
+	if (shaderResView != nullptr)
+		shaderResView->Release();
 	if (normalMap != nullptr)
 		normalMap->Release();
 	sampler->Release();
