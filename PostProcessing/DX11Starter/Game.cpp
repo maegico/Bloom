@@ -296,6 +296,7 @@ void Game::Draw(float deltaTiame, float totalTime)
 	brightPixelsPS->SetShader();
 	brightPixelsPS->SetShaderResourceView("InitialRender", irSRV);
 	brightPixelsPS->SetSamplerState("Sampler", sampler);
+	brightPixelsPS->SetFloat("brightnessLvl", 0.5);
 	brightPixelsPS->CopyAllBufferData();
 
 	//then draw
