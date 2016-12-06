@@ -83,8 +83,11 @@ void Game::Init()
 	cmanager = new ContentManager();
 	cmanager->Init(device, context);
 	Material* brick = cmanager->LoadMaterialWithNormalMap("brickLightingNormalMap", "sampler", "vsLighting.cso", "psLighting.cso", "bricks.png", "bricksNM.png");
-	Material* skybox = cmanager->LoadCubeMapMaterial("skyMap", "sampler", "SkyVS.cso", "SkyPS.cso", "SunnyCubeMap.dds");
-	Material* bloom = cmanager->LoadPostProcessingMaterial("Blur", "sampler", "vsBlur.cso", "psBlur.cso");
+	Material* skybox = cmanager->LoadCubeMapMaterial("skyMap", "sampler", "SkyVS.cso", "SkyPS.cso", "Ni.dds");
+	
+	Material* brightPixelsMat = cmanager->LoadPostProcessingMaterial("BrightPixels", "sampler", "vsBrightPixels.cso", "psBrightPixels.cso");
+	Material* blurMAt = cmanager->LoadPostProcessingMaterial("Blur", "sampler", "vsBlur.cso", "psBlur.cso");
+	Material* bloomMat = cmanager->LoadPostProcessingMaterial("Bloom", "sampler", "vsBloom.cso", "psBloom.cso");
 
 	entities = {
 		new Entity(context, cmanager->GetMesh("cube.obj"), brick, { 0.5, 0.5, 0 }, 0),
@@ -138,17 +141,22 @@ void Game::Init()
 
 	ID3D11Texture2D* initialRender;
 	ID3D11Texture2D* brightPixels;
+	ID3D11Texture2D* blur;
 	device->CreateTexture2D(&textureDesc, 0, &initialRender);
 	device->CreateTexture2D(&textureDesc, 0, &brightPixels);
+	device->CreateTexture2D(&textureDesc, 0, &blur);
 
 	device->CreateRenderTargetView(initialRender, &rtvDesc, &irRTV);
 	device->CreateRenderTargetView(brightPixels, &rtvDesc, &bpRTV);
+	device->CreateRenderTargetView(blur, &rtvDesc, &blRTV);
 
 	device->CreateShaderResourceView(initialRender, &srvDesc, &irSRV);
 	device->CreateShaderResourceView(brightPixels, &srvDesc, &bpSRV);
+	device->CreateShaderResourceView(blur, &srvDesc, &blSRV);
 
 	initialRender->Release();
 	brightPixels->Release();
+	blur->Release();
 
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
@@ -199,6 +207,8 @@ void Game::Draw(float deltaTiame, float totalTime)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
 	context->ClearRenderTargetView(irRTV, color);
+	context->ClearRenderTargetView(bpRTV, color);
+	context->ClearRenderTargetView(blRTV, color);
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView, 
@@ -270,26 +280,26 @@ void Game::Draw(float deltaTiame, float totalTime)
 	context->RSSetState(0);
 	context->OMSetDepthStencilState(0, 0);
 
+
+
 	//Post Processing
-	context->OMSetRenderTargets(1, &backBufferRTV, 0);
+	context->OMSetRenderTargets(1, &bpRTV, 0);
 
 	//Set the Shaders
 	//Send data to the Shaders
 	//copy all the buffer data
-	Material* blurMat = cmanager->GetMaterial("Blur");
-	SimplePixelShader* blurPS = blurMat->getPShader();
-	
-	blurMat->getVShader()->SetShader();
 
-	blurPS->SetShader();
-	blurPS->SetShaderResourceView("InitialRender", irSRV);
-	blurPS->SetSamplerState("Sampler", sampler);
-	blurPS->SetInt("blurAmount", 9);
-	blurPS->SetFloat("pixelWidth", 1.0f / width);
-	blurPS->SetFloat("pixelHeight", 1.0f / height);
-	blurPS->CopyAllBufferData();
+	Material* brightPixels = cmanager->GetMaterial("BrightPixels");
+	SimplePixelShader* brightPixelsPS = brightPixels->getPShader();
 	
+	brightPixels->getVShader()->SetShader();
+	brightPixelsPS->SetShader();
+	brightPixelsPS->SetShaderResourceView("InitialRender", irSRV);
+	brightPixelsPS->SetSamplerState("Sampler", sampler);
+	brightPixelsPS->CopyAllBufferData();
+
 	//then draw
+	//ID3D11Buffer* nothing1 = 0;
 	ID3D11Buffer* nothing = 0;
 	context->IASetVertexBuffers(0, 1, &nothing, &stride, &offset);
 	context->IASetIndexBuffer(0, DXGI_FORMAT_R32_UINT, 0);
@@ -297,7 +307,54 @@ void Game::Draw(float deltaTiame, float totalTime)
 	////draw the triangle that encompasses the whole screen
 	context->Draw(3, 0);
 
-	blurPS->SetShaderResourceView("InitialRender", 0);
+	context->OMSetRenderTargets(1, &blRTV, 0);
+
+	Material* blurMat = cmanager->GetMaterial("Blur");
+	SimplePixelShader* blurPS = blurMat->getPShader();
+
+	blurMat->getVShader()->SetShader();
+
+	blurPS->SetShader();
+
+	blurPS->SetShaderResourceView("BrightPixels", bpSRV);
+	blurPS->SetSamplerState("Sampler", sampler);
+	blurPS->SetInt("blurAmount", 5);
+	blurPS->SetFloat("pixelWidth", 1.0f / width);
+	blurPS->SetFloat("pixelHeight", 1.0f / height);
+	blurPS->CopyAllBufferData();
+
+	//then draw
+	//ID3D11Buffer* nothing2 = 0;
+	context->IASetVertexBuffers(0, 1, &nothing, &stride, &offset);
+	context->IASetIndexBuffer(0, DXGI_FORMAT_R32_UINT, 0);
+
+	//draw the triangle that encompasses the whole screen
+	context->Draw(3, 0);
+
+	//brightPixelsPS->SetShaderResourceView("InitialRender", 0);
+	//blurPS->SetShaderResourceView("Blur", 0);
+
+
+	//the last pass
+	context->OMSetRenderTargets(1, &backBufferRTV, 0);
+
+	Material* bloom = cmanager->GetMaterial("Bloom");
+	SimplePixelShader* bloomPS = bloom->getPShader();
+
+	bloom->getVShader()->SetShader();
+	bloomPS->SetShader();
+	bloomPS->SetShaderResourceView("InitialRender", irSRV);
+	bloomPS->SetShaderResourceView("Blur", bpSRV);
+	bloomPS->SetSamplerState("Sampler", sampler);
+	bloomPS->CopyAllBufferData();
+
+	//then draw
+	//ID3D11Buffer* nothing3 = 0;
+	context->IASetVertexBuffers(0, 1, &nothing, &stride, &offset);
+	context->IASetIndexBuffer(0, DXGI_FORMAT_R32_UINT, 0);
+
+	////draw the triangle that encompasses the whole screen
+	context->Draw(3, 0);
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it

@@ -11,13 +11,14 @@ struct VertexToPixel
 	float2 uv		: TEXCOORD0;
 };
 
-Texture2D InitialRender	: register(t0);
+Texture2D BrightPixels	: register(t0);
 SamplerState Sampler	: register(s0);
 
+//box blur, should change to Guassian
 float4 main(VertexToPixel input) : SV_TARGET
 {
 	float4 totalColor = float4(0,0,0,0);
-	uint numSamples = 0;
+	uint numSamples = blurAmount * blurAmount * 4;	//taking this out of the for loop
 
 	for (int y = -blurAmount; y < blurAmount; y++)
 	{
@@ -26,8 +27,8 @@ float4 main(VertexToPixel input) : SV_TARGET
 			//figure out this pixel's uv
 			float2 uv = input.uv + float2(x * pixelWidth, y * pixelHeight);
 
-			totalColor += InitialRender.Sample(Sampler, uv);
-			numSamples++;
+			totalColor += BrightPixels.Sample(Sampler, uv);
+			//numSamples++;
 		}
 	}
 

@@ -54,6 +54,10 @@ private:
 	ID3D11RenderTargetView* bpRTV;		// Allows us to render to a texture
 	ID3D11ShaderResourceView* bpSRV;	// Allows us to sample from the same texture
 
+	//blur
+	ID3D11RenderTargetView* blRTV;		// Allows us to render to a texture
+	ID3D11ShaderResourceView* blSRV;	// Allows us to sample from the same texture
+
 	ContentManager* cmanager;
 	std::vector<Entity*>  entities;
 	Camera* camera;
