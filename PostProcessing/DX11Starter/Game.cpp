@@ -296,7 +296,7 @@ void Game::Draw(float deltaTiame, float totalTime)
 	brightPixelsPS->SetShader();
 	brightPixelsPS->SetShaderResourceView("InitialRender", irSRV);
 	brightPixelsPS->SetSamplerState("Sampler", sampler);
-	brightPixelsPS->SetFloat("brightnessLvl", 0.5);
+	brightPixelsPS->SetFloat("brightnessLvl", 0.4);
 	brightPixelsPS->CopyAllBufferData();
 
 	//then draw
@@ -345,7 +345,7 @@ void Game::Draw(float deltaTiame, float totalTime)
 	bloom->getVShader()->SetShader();
 	bloomPS->SetShader();
 	bloomPS->SetShaderResourceView("InitialRender", irSRV);
-	bloomPS->SetShaderResourceView("Blur", bpSRV);
+	bloomPS->SetShaderResourceView("Blur", blSRV);
 	bloomPS->SetSamplerState("Sampler", sampler);
 	bloomPS->CopyAllBufferData();
 
