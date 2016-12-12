@@ -69,7 +69,7 @@ void Game::Init()
 	spotLight = { XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),
 				XMFLOAT3(1.0f, 0.0f, 0.0f),
 				2.0f,
-				XMFLOAT3(-1.0f, 0.0f, 0.0f) };
+				XMFLOAT3(1.0f, 0.0f, 0.0f)};
 
 	lights = { { spotLight },
 			{ pointLight },
@@ -90,11 +90,15 @@ void Game::Init()
 	Material* bloomMat = cmanager->LoadPostProcessingMaterial("Bloom", "sampler", "vsBloom.cso", "psBloom.cso");
 
 	entities = {
-		new Entity(context, cmanager->GetMesh("cube.obj"), brick, { 0.5, 0.5, 0 }, 0),
-		new Entity(context, cmanager->GetMesh("cone.obj"), brick, { 0, 0, 0 }, 0),
+		/*new Entity(context, cmanager->GetMesh("cube.obj"), brick, { 0.5, 0.5, 0 }, 0),*/
+		new Entity(context, cmanager->GetMesh("cube.obj"), brick,{ 0.5, 0.5, 0 }, 0),
+		/*new Entity(context, cmanager->GetMesh("cone.obj"), brick, { 0, 0, 0 }, 0),
 		new Entity(context, cmanager->GetMesh("helix.obj"), brick, { -1.0f, 0, 0 }, 0),
 		new Entity(context, cmanager->GetMesh("cube.obj"), brick, { 0.0f, -0.5f, 0 }, 0),
-		new Entity(context, cmanager->GetMesh("torus.obj"), brick, { 1.0f, -1.0f, 0 }, 0) };
+		new Entity(context, cmanager->GetMesh("torus.obj"), brick, { 1.0f, -1.0f, 0 }, 0) };*/ };
+
+	entities[0]->setPosition({-1, 0, 0});
+	entities[0]->setScale({ 0.25, 3, 3 });
 
 	camera->updateProjection(width, height);
 
@@ -173,6 +177,55 @@ void Game::OnResize()
 	// Handle base-level DX resize stuff
 	DXCore::OnResize();
 
+	//reset the buffers
+	irSRV->Release();
+	bpSRV->Release();
+	blSRV->Release();
+
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = textureDesc.Format;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = textureDesc.Format;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+
+	ID3D11Texture2D* initialRender;
+	ID3D11Texture2D* brightPixels;
+	ID3D11Texture2D* blur;
+
+	device->CreateTexture2D(&textureDesc, 0, &initialRender);
+	device->CreateTexture2D(&textureDesc, 0, &brightPixels);
+	device->CreateTexture2D(&textureDesc, 0, &blur);
+
+	device->CreateRenderTargetView(initialRender, &rtvDesc, &irRTV);
+	device->CreateRenderTargetView(brightPixels, &rtvDesc, &bpRTV);
+	device->CreateRenderTargetView(blur, &rtvDesc, &blRTV);
+
+	device->CreateShaderResourceView(initialRender, &srvDesc, &irSRV);
+	device->CreateShaderResourceView(brightPixels, &srvDesc, &bpSRV);
+	device->CreateShaderResourceView(blur, &srvDesc, &blSRV);
+
+	initialRender->Release();
+	brightPixels->Release();
+	blur->Release();
+
 	camera->updateProjection(width, height);
 }
 
@@ -189,7 +242,7 @@ void Game::Update(float deltaTime, float totalTime)
 
 	for (int i = 0; i < entities.size(); i++)
 	{
-		//entities[i]->move({ 0.25f * deltaTime, 0.0f * deltaTime, 0.0f * deltaTime });
+		entities[i]->move({ 0.25f * deltaTime, 0.0f * deltaTime, 0.0f * deltaTime });
 		entities[i]->update(deltaTime);
 	}
 }
@@ -296,7 +349,7 @@ void Game::Draw(float deltaTiame, float totalTime)
 	brightPixelsPS->SetShader();
 	brightPixelsPS->SetShaderResourceView("InitialRender", irSRV);
 	brightPixelsPS->SetSamplerState("Sampler", sampler);
-	brightPixelsPS->SetFloat("brightnessLvl", 0.4);
+	brightPixelsPS->SetFloat("brightnessLvl", 20);
 	brightPixelsPS->CopyAllBufferData();
 
 	//then draw
